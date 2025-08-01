@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16.1
+    container_name: erms_db
+    restart: always
+    environment:
+      POSTGRES_DB: erms_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "5433:5432"
+    networks:
+      - erms-backend-network
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+networks:
+  erms-backend-network:
+    driver: bridge
+volumes:
+  pgdata:
