@@ -4,7 +4,7 @@ from .models import User,UserRoleChoices
 from.permissions import IsManager
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView, ListCreateAPIView
-from .serializers import SignupSerializer,CustomLoginSerializer, EngineerListSerializer, EngineerDetailSerializer, EngineerCreateSerializer
+from .serializers import SignupSerializer,CustomLoginSerializer, EngineerListSerializer, EngineerDetailSerializer, EngineerCreateSerializer, UserSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import status
 from utils.pagination import DefaultPagination
@@ -57,9 +57,16 @@ class EngineerDetailView(RetrieveAPIView):
     serializer_class = EngineerDetailSerializer
     queryset = User.objects.filter(role="engineer")
 
-    def get_queryset(self):
-        return User.objects.filter(role=UserRoleChoices.ENGINEER)
-    
+    # def get_queryset(self):
+    #     return User.objects.filter(role=UserRoleChoices.ENGINEER)
+
+class UserView(RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def get_object(self):
+        return self.request.user
+
 class EngineerCapacityView(APIView):
     permission_classes = [IsAuthenticated]
 

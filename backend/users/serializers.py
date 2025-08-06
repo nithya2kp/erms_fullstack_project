@@ -9,7 +9,17 @@ today = timezone.now().date()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = "__all__"
+        exclude = [
+            "password",
+            "groups",
+            "user_permissions",
+            "is_superuser",
+            "is_staff",
+            "first_name",
+            "last_name",
+            "date_joined",
+            "last_login",
+        ]
 
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
