@@ -1,8 +1,8 @@
 
 
-def get_allocated_capacity(user):
-    # later we connect assignments table
-    return 0
+# def get_allocated_capacity(user):
+#     # later we connect assignments table
+#     return 0
 
 # def build_engineer_response(users):
 #     result = []
