@@ -2,25 +2,51 @@ from django.shortcuts import render
 from rest_framework import generics
 from .models import User,UserRoleChoices
 from.permissions import IsManager
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
-from rest_framework.generics import RetrieveAPIView, ListCreateAPIView
-from .serializers import SignupSerializer,CustomLoginSerializer, EngineerListSerializer, EngineerDetailSerializer, EngineerCreateSerializer, UserSerializer
+from rest_framework.generics import RetrieveAPIView, ListCreateAPIView,ListAPIView,RetrieveUpdateDestroyAPIView
+from .serializers import SignupSerializer,CustomLoginSerializer, EngineerListSerializer, EngineerDetailSerializer, EngineerCreateSerializer, UserSerializer,UserUpdateSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import status
 from utils.pagination import DefaultPagination
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
-
+from assignments.models import Skill
+from users.models import UserSkill
+from utils.exceptions import ERMSException
+from assignments.models import Assignment
+from assignments.serializers import AssignmentListSerializer
 
 class SignupView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = SignupSerializer
+    permission_classes = [AllowAny]
 
 class CustomLoginView(TokenObtainPairView):
     serializer_class = CustomLoginSerializer
+    permission_classes = [AllowAny]
 
+class UserListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPagination
+    serializer_class = UserSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser:
+            return User.objects.all().order_by("created_at")
+
+        elif user.role == UserRoleChoices.MANAGER:
+            return User.objects.filter(
+                role=UserRoleChoices.ENGINEER
+            ).order_by("created_at").prefetch_related("user_skills__skill")
+
+        else:
+            raise PermissionDenied("You do not have permission to view this list.")
+        
 class EngineerListCreateView(ListCreateAPIView):
     permission_classes = [IsManager]
     pagination_class = DefaultPagination
@@ -60,6 +86,29 @@ class EngineerDetailView(RetrieveAPIView):
     # def get_queryset(self):
     #     return User.objects.filter(role=UserRoleChoices.ENGINEER)
 
+class EngineerAssignmentsView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AssignmentListSerializer
+    pagination_class = DefaultPagination
+
+    def get_queryset(self):
+        user = self.request.user
+        engineer_id = self.kwargs.get("id")
+
+        # Access control
+        if (
+            user.role != UserRoleChoices.MANAGER
+            and str(user.id) != str(engineer_id)
+        ):
+            raise ERMSException(
+                status_code=403,
+                detail="You can only view your own assignments"
+            )
+
+        return Assignment.objects.filter(
+            engineer_id=engineer_id
+        ).select_related("project").order_by("-created_at")
+    
 class UserView(RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
@@ -67,6 +116,42 @@ class UserView(RetrieveAPIView):
     def get_object(self):
         return self.request.user
 
+class UserUpdateDeleteView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsManager]
+    queryset = User.objects.all()
+    serializer_class = UserUpdateSerializer
+    http_method_names = ["patch", "delete"]
+
+    def patch(self, request, *args, **kwargs):
+        instance = self.get_object()
+        skill_names = request.data.get("skills", None)
+
+        serializer = UserUpdateSerializer(
+            instance,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        if skill_names is not None:
+            UserSkill.objects.filter(user=user).delete()
+            skills = Skill.objects.filter(name__in=skill_names)
+            UserSkill.objects.bulk_create([
+                UserSkill(user=user, skill=skill)
+                for skill in skills
+            ])
+
+        return Response({
+            "message": "User updated successfully",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return Response({"message": "Deleted successfully"}, status=status.HTTP_200_OK)
+    
 class EngineerCapacityView(APIView):
     permission_classes = [IsAuthenticated]
 
