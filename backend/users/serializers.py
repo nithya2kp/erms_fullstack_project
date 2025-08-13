@@ -52,7 +52,32 @@ class CustomLoginSerializer(TokenObtainPairSerializer):
             "username": self.user.email,
             "access": data["access"],
         }
-    
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    skills = serializers.ListField(
+        child=serializers.CharField(),
+        write_only=True,
+        required=False
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "name",
+            "tech_role",
+            "seniority",
+            "max_capacity",
+            "department",
+            "skills",
+        ]
+
+    # def validate_max_capacity(self, value):
+    #     if value < 0 or value > 100:
+    #         raise serializers.ValidationError(
+    #             "Capacity must be between 0 and 100"
+    #         )
+    #     return value
+        
 class EngineerBaseSerializer(serializers.ModelSerializer):
     skills = serializers.SerializerMethodField()
     class Meta:
