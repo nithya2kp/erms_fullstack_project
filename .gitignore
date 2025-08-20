@@ -4,3 +4,10 @@ venv/
 env/
 .idea
 .vscode
+.env
+
+node_modules/
+dist/
+build/
+
+*.log
