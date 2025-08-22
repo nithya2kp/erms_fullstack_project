@@ -18,6 +18,8 @@ from users.models import UserSkill
 from utils.exceptions import ERMSException
 from assignments.models import Assignment
 from assignments.serializers import AssignmentListSerializer
+from django.db.models import Sum, Q
+from django.utils.timezone import now
 
 class SignupView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -57,17 +59,30 @@ class EngineerListCreateView(ListCreateAPIView):
         return EngineerListSerializer
 
     def get_queryset(self):
+        today = now().date()
         seniority = self.request.GET.get("seniority")
         department = self.request.GET.get("department")
 
-        queryset = User.objects.filter(role=UserRoleChoices.ENGINEER).order_by("created_at").prefetch_related("user_skills__skill")
+        queryset = User.objects.filter(
+            role=UserRoleChoices.ENGINEER
+        ).order_by("created_at").prefetch_related(
+            "user_skills__skill"
+        ).annotate(
+            allocated=Sum(
+                "assignments__allocation_percentage",
+                filter=Q(
+                    assignments__start_date__lte=today,
+                    assignments__end_date__gte=today
+                )
+            )
+        )
+
         if seniority:
             queryset = queryset.filter(seniority=seniority)
-
         if department:
             queryset = queryset.filter(department_id=department)
 
-        return  queryset
+        return queryset
     
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)

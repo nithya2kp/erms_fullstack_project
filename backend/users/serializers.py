@@ -102,9 +102,13 @@ class EngineerBaseSerializer(serializers.ModelSerializer):
 
 
 class EngineerListSerializer(EngineerBaseSerializer):
-    allocated = serializers.IntegerField(read_only=True)
+    allocated = serializers.SerializerMethodField()
+
     class Meta(EngineerBaseSerializer.Meta):
         fields = EngineerBaseSerializer.Meta.fields + ["allocated"]
+
+    def get_allocated(self, obj):
+        return getattr(obj, "allocated", None) or 0
 
 
 class EngineerDetailSerializer(EngineerBaseSerializer):
