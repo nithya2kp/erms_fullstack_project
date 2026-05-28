@@ -7,7 +7,6 @@ const AIMatch = () => {
   const [matches, setMatches] = useState<any[]>([]);
   const [projectInfo, setProjectInfo] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -16,8 +15,6 @@ const AIMatch = () => {
         setProjects(res.data.results || []);
       } catch (err) {
         console.error(err);
-      } finally {
-        setFetching(false);
       }
     };
     fetchProjects();

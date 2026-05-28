@@ -28,9 +28,14 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SECRET_KEY = 'django-insecure-@2)he^u4yg(mzrkq_vory0y(o5!!u!5fv#p_7s@&g5lywtr+o@'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+DEBUG = False
+
+ALLOWED_HOSTS = [
+    "erms-backend-w4mb.onrender.com",  
+    "localhost",
+    "127.0.0.1"
+]
 
 # Application definition
 
